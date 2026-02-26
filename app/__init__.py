@@ -4,6 +4,9 @@ from flask import Flask
 # Import SQLAlchemy to handle database connection
 from flask_sqlalchemy import SQLAlchemy
 
+# Import Bcrypt for password hashing
+from flask_bcrypt import Bcrypt
+
 # Import load_dotenv to read the .env file
 from dotenv import load_dotenv
 
@@ -26,6 +29,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 # Create the database object - this is your gateway to PostgreSQL
 # You'll use db.session.add(), db.session.commit() etc. throughout the project
 db = SQLAlchemy(app)
+
+# Create the bcrypt object - used to hash and verify passwords
+bcrypt = Bcrypt(app)
 
 # Import routes at the bottom to avoid circular import errors
 # (routes.py also imports from this file so it must come last)
