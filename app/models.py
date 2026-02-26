@@ -1,7 +1,13 @@
+from app import db, login_manager  # ADD login_manager to this import
+from flask_login import UserMixin
 from app import db
 from datetime import datetime
 import uuid
 import os
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Faculty table - stores all faculties e.g. FAME, FAI
 class Faculty(db.Model):

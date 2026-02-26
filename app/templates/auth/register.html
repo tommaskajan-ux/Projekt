@@ -1,0 +1,119 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Register — UTB Docs{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm mt-5">
+            <div class="card-body p-4">
+
+                <!-- Page heading -->
+                <h4 class="card-title mb-4 text-center">
+                    <i class="bi bi-person-plus"></i> Create Account
+                </h4>
+
+                <!-- Register form — POST sends data to the same /register route -->
+                <form method="POST" action="{{ url_for('register') }}">
+
+                    <!-- First and last name side by side -->
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="first_name"
+                                name="first_name"
+                                placeholder="Jan"
+                                required
+                                autofocus
+                            >
+                        </div>
+                        <div class="col">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="last_name"
+                                name="last_name"
+                                placeholder="Novák"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="username"
+                            name="username"
+                            placeholder="jnovak"
+                            required
+                        >
+                    </div>
+
+                    <!-- UTB Email -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">UTB Email</label>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
+                            placeholder="d_novak@utb.cz"
+                            required
+                        >
+                        <div class="form-text">Must be in format d_surname@utb.cz</div>
+                    </div>
+
+                    <!-- Faculty dropdown — populated from the database by the route -->
+                    <div class="mb-3">
+                        <label for="faculty_id" class="form-label">Faculty</label>
+                        <select class="form-select" id="faculty_id" name="faculty_id" required>
+                            <option value="" disabled selected>-- Select your faculty --</option>
+                            {% for faculty in faculties %}
+                                <option value="{{ faculty.id }}">
+                                    {{ faculty.name }} ({{ faculty.code }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
+                            placeholder="Min. 8 chars, 1 uppercase, 1 number"
+                            required
+                        >
+                        <div class="form-text">Minimum 8 characters, at least one uppercase letter and one number.</div>
+                    </div>
+
+                    <!-- Submit button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-person-check"></i> Create Account
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Link back to login -->
+                <hr>
+                <p class="text-center mb-0 small">
+                    Already have an account?
+                    <a href="{{ url_for('login') }}">Sign in here</a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

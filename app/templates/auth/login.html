@@ -1,0 +1,65 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Login — UTB Docs{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm mt-5">
+            <div class="card-body p-4">
+
+                <!-- Page heading -->
+                <h4 class="card-title mb-4 text-center">
+                    <i class="bi bi-person-lock"></i> Sign In
+                </h4>
+
+                <!-- Login form — POST sends data to the same /login route -->
+                <form method="POST" action="{{ url_for('login') }}">
+
+                    <!-- Email field -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">UTB Email</label>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
+                            placeholder="d_surname@utb.cz"
+                            required
+                            autofocus
+                        >
+                    </div>
+
+                    <!-- Password field -->
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
+                            placeholder="Your password"
+                            required
+                        >
+                    </div>
+
+                    <!-- Submit button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Link to register page -->
+                <hr>
+                <p class="text-center mb-0 small">
+                    No account yet?
+                    <a href="{{ url_for('register') }}">Register here</a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Dashboard — UTB Docs{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <!-- Welcome message using Flask-Login's current_user -->
+        <h3>
+            <i class="bi bi-speedometer2"></i>
+            Welcome, {{ current_user.full_name() }}
+        </h3>
+        <p class="text-muted mb-0">
+            Faculty: <strong>{{ current_user.faculty.name }} ({{ current_user.faculty.code }})</strong>
+        </p>
+        <p class="text-muted">
+            Last login:
+            {% if current_user.last_login %}
+                {{ current_user.last_login.strftime('%d.%m.%Y at %H:%M') }}
+            {% else %}
+                This is your first login
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Stats cards row -->
+<div class="row g-3 mb-4">
+
+    <!-- My Files card -->
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">My Files</h6>
+                        <h2 class="mb-0">{{ file_count }}</h2>
+                    </div>
+                    <i class="bi bi-file-earmark-text fs-1 text-primary opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="#" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-folder2-open"></i> Browse Files
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload card -->
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Upload Document</h6>
+                        <p class="mb-0 small text-muted">PDF, DOCX, TXT</p>
+                    </div>
+                    <i class="bi bi-cloud-upload fs-1 text-success opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="#" class="btn btn-sm btn-outline-success w-100">
+                    <i class="bi bi-upload"></i> Upload File
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty card -->
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Your Faculty</h6>
+                        <h2 class="mb-0">{{ current_user.faculty.code }}</h2>
+                    </div>
+                    <i class="bi bi-building fs-1 text-warning opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <span class="small text-muted">{{ current_user.faculty.name }}</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Recent files placeholder — will be replaced when file routes are built -->
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-clock-history"></i> Recent Files</h6>
+    </div>
+    <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        No files uploaded yet.
+        <br>
+        <a href="#" class="btn btn-sm btn-primary mt-3">
+            <i class="bi bi-upload"></i> Upload your first file
+        </a>
+    </div>
+</div>
+{% endblock %}
