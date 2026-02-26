@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 basedir = Path(__file__).resolve().parent
 load_dotenv(basedir / ".env")
 
-import boto3
+from minio import Minio
+from minio.error import S3Error
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -15,13 +16,12 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 
-def s3_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=os.getenv("S3_ENDPOINT_URL"),
-        aws_access_key_id=os.getenv("S3_ACCESS_KEY"),
-        aws_secret_access_key=os.getenv("S3_SECRET_KEY"),
-        region_name=os.getenv("S3_REGION", "us-east-1"),
+def get_minio_client():
+    return Minio(
+        os.getenv("AWS_ENDPOINT_URL", "127.0.0.1:9000").replace("http://", "").replace("https://", ""),
+        access_key=os.getenv("AWS_ACCESS_KEY_ID"),
+        secret_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        secure=False
     )
 
 
@@ -46,12 +46,12 @@ class FileMetadata(db.Model):
 
 def create_app():
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-key")
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-key")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
-    migrate.init_app(app, db)  # THIS must be inside create_app
+    migrate.init_app(app, db)
 
     @app.get("/health")
     def health():
@@ -68,13 +68,14 @@ def create_app():
     @app.get("/minio-check")
     def minio_check():
         try:
-            s3 = s3_client()
-            bucket = os.getenv("S3_BUCKET", "uploads")
-            existing = [b["Name"] for b in s3.list_buckets().get("Buckets", [])]
-            if bucket not in existing:
-                s3.create_bucket(Bucket=bucket)
+            client = get_minio_client()
+            bucket = os.getenv("S3_BUCKET_NAME", "documents")
+
+            if not client.bucket_exists(bucket):
+                client.make_bucket(bucket)
+
             return jsonify(minio="ok", bucket=bucket)
-        except Exception as e:
+        except S3Error as e:
             return jsonify(minio="error", error=str(e)), 500
 
     return app
