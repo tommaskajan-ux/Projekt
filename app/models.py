@@ -62,7 +62,7 @@ class Subject(db.Model):
 
 
 # User table - stores all registered students
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
 
     # Unique ID for each student
