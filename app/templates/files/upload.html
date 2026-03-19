@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File — UTB Docs{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="card-title mb-4 text-center">
+                    <i class="bi bi-cloud-upload"></i> Upload Document
+                </h4>
+
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+
+                    <div class="mb-3">
+                        <label for="subject_id" class="form-label">Subject</label>
+                        <select class="form-select" id="subject_id" name="subject_id" required>
+                            <option value="" disabled selected>-- Select subject --</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}">
+                                    {{ subject.code }} ({{ subject.name }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Choose file</label>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="file"
+                            name="file"
+                            accept=".pdf,.docx,.txt"
+                            required
+                        >
+                        <div class="form-text">Allowed formats: PDF, DOCX, TXT</div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-upload"></i> Upload File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

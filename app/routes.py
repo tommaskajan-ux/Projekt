@@ -4,7 +4,10 @@ from app import app, db, bcrypt
 from app.models import User, Faculty, Subject, File
 from datetime import datetime, timedelta
 import re
-
+from werkzeug.utils import secure_filename
+from io import BytesIO
+from app import minio_client
+import os
 
 @app.route('/')
 def home():
@@ -137,3 +140,86 @@ def logout():
     logout_user()
     flash('You have been logged out', 'success')
     return redirect(url_for('login'))
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
+BUCKET_NAME = 'utb-docs'
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/upload', methods=['GET', 'POST'])
+@login_required
+def upload_file():
+    subjects = Subject.query.filter_by(
+        faculty_id=current_user.faculty_id,
+        is_active=True
+    ).order_by(Subject.code).all()
+
+    if request.method == 'GET':
+        return render_template('files/upload.html', subjects=subjects)
+
+    uploaded_file = request.files.get('file')
+    subject_id = request.form.get('subject_id')
+
+    if not uploaded_file or uploaded_file.filename == '':
+        flash('Please select a file', 'error')
+        return redirect(url_for('upload_file'))
+
+    if not subject_id:
+        flash('Please select a subject', 'error')
+        return redirect(url_for('upload_file'))
+
+    subject = Subject.query.filter_by(
+        id=subject_id,
+        faculty_id=current_user.faculty_id,
+        is_active=True
+    ).first()
+
+    if not subject:
+        flash('Invalid subject selection', 'error')
+        return redirect(url_for('upload_file'))
+
+    if not allowed_file(uploaded_file.filename):
+        flash('Only PDF, DOCX and TXT files are allowed', 'error')
+        return redirect(url_for('upload_file'))
+
+    original_filename = secure_filename(uploaded_file.filename)
+    stored_filename = File.generate_stored_filename(original_filename)
+    object_path = f"{current_user.faculty.code}/{subject.code}/{stored_filename}"
+
+    file_data = uploaded_file.read()
+    file_size = len(file_data)
+    file_type = os.path.splitext(original_filename)[1].lower().replace('.', '')
+
+    try:
+        if not minio_client.bucket_exists(BUCKET_NAME):
+            minio_client.make_bucket(BUCKET_NAME)
+
+        minio_client.put_object(
+            BUCKET_NAME,
+            object_path,
+            data=BytesIO(file_data),
+            length=file_size,
+            content_type=uploaded_file.content_type or 'application/octet-stream'
+        )
+
+        new_file = File(
+            filename=original_filename,
+            stored_filename=stored_filename,
+            filepath=object_path,
+            filetype=file_type,
+            filesize=file_size,
+            user_id=current_user.id,
+            subject_id=subject.id
+        )
+
+        db.session.add(new_file)
+        db.session.commit()
+
+        flash('File uploaded successfully', 'success')
+        return redirect(url_for('dashboard'))
+
+    except Exception as e:
+        flash(f'Upload failed: {str(e)}', 'error')
+        return redirect(url_for('upload_file'))
