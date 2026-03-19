@@ -1,4 +1,4 @@
-from app import db, login_manager  # ADD login_manager to this import
+from app import db, login_manager
 from flask_login import UserMixin
 from app import db
 from datetime import datetime
