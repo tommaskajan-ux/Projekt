@@ -1,13 +1,33 @@
-﻿version: '3.8'
+﻿
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+#DO NOT PUSH
+
+version: '3.8'
 
 services:
   postgres:
     image: postgres:15
     container_name: flask-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret123
+      POSTGRES_DB: myproject
     ports:
       - "5432:5432"
     volumes:
@@ -17,8 +37,8 @@ services:
     image: minio/minio
     container_name: flask-minio
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: secret123
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -29,3 +49,4 @@ services:
 volumes:
   pgdata:
   miniodata:
+
