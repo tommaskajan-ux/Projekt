@@ -1,13 +1,15 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from app import app, db, bcrypt
-from app.models import User, Faculty, Subject, File
+from flask_mail import Message
+from app import app, db, bcrypt, mail
+from app.models import User, Faculty, Subject, File, VerificationToken
 from datetime import datetime, timedelta
 import re
 from werkzeug.utils import secure_filename
 from io import BytesIO
 from app import minio_client
 import os
+
 
 @app.route('/')
 def home():
@@ -36,8 +38,9 @@ def login():
             flash('Invalid email or password', 'error')
             return redirect(url_for('login'))
 
+        # Changed — now distinguishes unverified vs disabled
         if not user.is_active:
-            flash('Your account has been disabled', 'error')
+            flash('Please verify your email address before logging in. Check your inbox.', 'error')
             return redirect(url_for('login'))
 
         if user.is_locked():
@@ -112,19 +115,68 @@ def register():
             return redirect(url_for('register'))
 
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+        # is_active=False — account locked until email verified
         new_user = User(
             first_name=first_name,
             last_name=last_name,
             username=username,
             email=email,
             password=hashed_password,
-            faculty_id=faculty_id
+            faculty_id=faculty_id,
+            is_active=False
         )
         db.session.add(new_user)
+        db.session.flush()
+
+        # Generate and save verification token
+        token = VerificationToken.generate(new_user.id)
+        db.session.add(token)
         db.session.commit()
 
-        flash('Account created successfully, please log in', 'success')
+        # Build verification link and send email
+        verify_url = url_for('verify_email', token=token.token, _external=True)
+
+        msg = Message(
+            subject='Verify your UTB Docs account',
+            recipients=[email]
+        )
+        msg.body = f'''Hello {first_name},
+
+Please verify your email address by clicking the link below:
+
+{verify_url}
+
+This link expires in 24 hours.
+
+If you did not register for UTB Docs, ignore this email.
+'''
+        mail.send(msg)
+
+        flash('Account created! Please check your email to verify your account.', 'success')
         return redirect(url_for('login'))
+
+
+@app.route('/verify/<token>')
+def verify_email(token):
+    verification = VerificationToken.query.filter_by(token=token).first()
+
+    if not verification:
+        flash('Invalid verification link.', 'error')
+        return redirect(url_for('login'))
+
+    if not verification.is_valid():
+        flash('This verification link has expired or already been used.', 'error')
+        return redirect(url_for('register'))
+
+    # Activate the user account
+    user = verification.user
+    user.is_active = True
+    verification.used = True
+    db.session.commit()
+
+    flash('Email verified successfully! You can now log in.', 'success')
+    return redirect(url_for('login'))
 
 
 @app.route('/dashboard')
@@ -140,6 +192,8 @@ def logout():
     logout_user()
     flash('You have been logged out', 'success')
     return redirect(url_for('login'))
+
+
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
 BUCKET_NAME = 'utb-docs'
 

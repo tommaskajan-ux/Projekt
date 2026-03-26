@@ -1,117 +1,71 @@
-from app import db, login_manager  # ADD login_manager to this import
+from app import db, login_manager
 from flask_login import UserMixin
-from app import db
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 import os
+
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Faculty table - stores all faculties e.g. FAME, FAI
+
 class Faculty(db.Model):
     __tablename__ = 'faculties'
 
-    # Unique ID for each faculty
     id = db.Column(db.Integer, primary_key=True)
-
-    # Full name of the faculty e.g. Faculty of Informatics
     name = db.Column(db.String(100), unique=True, nullable=False)
-
-    # Short code e.g. FAI, FAME
     code = db.Column(db.String(20), unique=True, nullable=False)
-
-    # Whether the faculty is active
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-
-    # Links faculty to its subjects
     subjects = db.relationship('Subject', backref='faculty', lazy=True)
-
-    # Links faculty to its students
     users = db.relationship('User', backref='faculty', lazy=True)
 
     def __repr__(self):
         return f'<Faculty {self.code}>'
 
 
-# Subject table - stores all subjects linked to a faculty
 class Subject(db.Model):
     __tablename__ = 'subjects'
 
-    # Unique ID for each subject
     id = db.Column(db.Integer, primary_key=True)
-
-    # Subject name e.g. Mathematics
     name = db.Column(db.String(100), nullable=False)
-
-    # Subject code e.g. MAT101
     code = db.Column(db.String(20), unique=True, nullable=False)
-
-    # Whether the subject is active
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-
-    # Links this subject to a faculty
     faculty_id = db.Column(db.Integer, db.ForeignKey('faculties.id'), nullable=False)
-
-    # Links subject to its files
     files = db.relationship('File', backref='subject', lazy=True)
 
     def __repr__(self):
         return f'<Subject {self.code}>'
 
 
-# User table - stores all registered students
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
 
-    # Unique ID for each student
     id = db.Column(db.Integer, primary_key=True)
-
-    # Student first name
     first_name = db.Column(db.String(80), nullable=False)
-
-    # Student last name
     last_name = db.Column(db.String(80), nullable=False)
-
-    # Unique username
     username = db.Column(db.String(80), unique=True, nullable=False)
-
-    # Unique email - used for login
     email = db.Column(db.String(120), unique=True, nullable=False)
-
-    # Hashed password - NEVER store plain text passwords
     password = db.Column(db.String(200), nullable=False)
 
-    # Whether the account is active - False means disabled without deleting
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    # Changed to False — account locked until email verified
+    is_active = db.Column(db.Boolean, default=False, nullable=False)
 
-    # Counts consecutive failed login attempts - resets on successful login
     failed_logins = db.Column(db.Integer, default=0, nullable=False)
-
-    # If account is locked this stores when the lock expires
     locked_until = db.Column(db.DateTime, nullable=True)
-
-    # When the account was created
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    # Last time the user successfully logged in
     last_login = db.Column(db.DateTime, nullable=True)
-
-    # Links student to their faculty
     faculty_id = db.Column(db.Integer, db.ForeignKey('faculties.id'), nullable=False)
-
-    # Links student to their uploaded files
     files = db.relationship('File', backref='owner', lazy=True)
 
-    # Checks if the account is currently locked
-    # Returns True if locked, False if not
+    # Links user to their verification tokens
+    tokens = db.relationship('VerificationToken', backref='user', lazy=True)
+
     def is_locked(self):
         if self.locked_until and self.locked_until > datetime.utcnow():
             return True
         return False
 
-    # Returns the full name of the user conveniently
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
 
@@ -119,44 +73,52 @@ class User(db.Model, UserMixin):
         return f'<User {self.username}>'
 
 
-# File table - stores metadata about every uploaded document
+class VerificationToken(db.Model):
+    __tablename__ = 'verification_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # The token string — uuid hex, impossible to guess
+    token = db.Column(db.String(100), unique=True, nullable=False)
+
+    # When this token expires — 24 hours after creation
+    expires_at = db.Column(db.DateTime, nullable=False)
+
+    # Whether this token has already been used
+    used = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Which user this token belongs to
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Generates a fresh token with 24 hour expiry
+    @staticmethod
+    def generate(user_id):
+        token = VerificationToken(
+            token=uuid.uuid4().hex,
+            expires_at=datetime.utcnow() + timedelta(hours=24),
+            user_id=user_id
+        )
+        return token
+
+    # Checks if token is still valid — not used AND not expired
+    def is_valid(self):
+        return not self.used and self.expires_at > datetime.utcnow()
+
+
 class File(db.Model):
     __tablename__ = 'files'
 
-    # Unique ID for each file
     id = db.Column(db.Integer, primary_key=True)
-
-    # Original name of the uploaded file - what the user sees
     filename = db.Column(db.String(255), nullable=False)
-
-    # Safe unique name generated by us - what actually lives in MinIO
-    # Generated using uuid to prevent path traversal attacks
     stored_filename = db.Column(db.String(500), nullable=False)
-
-    # Full path in MinIO where the file is stored
     filepath = db.Column(db.String(500), nullable=False)
-
-    # File type e.g. pdf, docx, txt
     filetype = db.Column(db.String(50), nullable=False)
-
-    # File size in bytes
     filesize = db.Column(db.Integer, nullable=True)
-
-    # Whether the file is active - False means soft deleted
-    # File stays in MinIO but is hidden from users
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-
-    # When the file was uploaded
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    # Links file to the student who uploaded it
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-
-    # Links file to the subject it belongs to
     subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=False)
 
-    # Generates a safe unique filename before saving
-    # Takes the original extension e.g. .pdf and adds a uuid in front
     @staticmethod
     def generate_stored_filename(original_filename):
         ext = os.path.splitext(original_filename)[1]
